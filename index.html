@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daphne, be my Valentine?</title>
+  <style>
+    :root { --pink:#ff4d7d; --bg1:#fff; --bg2:#ffe7ef; --dark:#222; }
+    body{
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
+      padding: 18px;
+    }
+    .card{
+      width:min(92vw, 440px);
+      background:#fff; border-radius:18px; padding:18px 16px;
+      box-shadow:0 12px 30px rgba(0,0,0,.12);
+      text-align:center;
+    }
+    .chip{
+      display:inline-block; background:#ffe7ef; padding:8px 12px;
+      border-radius:999px; font-weight:800;
+    }
+    h1{ font-size:22px; margin:12px 0 8px; }
+    p{ margin:0 0 14px; opacity:.8; line-height:1.35; }
+    .tiny{ font-size:12px; opacity:.65; margin-top:10px; }
+
+    /* Screen 1 button arena */
+    .btns{ position:relative; height:150px; margin-top:8px; }
+    button{
+      border:0; border-radius:14px; padding:14px 16px;
+      font-size:16px; font-weight:800; cursor:pointer;
+    }
+    #yes1{
+      background:var(--pink); color:#fff;
+      position:absolute; left:6%; top:26px; width:45%;
+    }
+    #no1{
+      background:var(--dark); color:#fff;
+      position:absolute; right:6%; top:26px; width:45%;
+      touch-action: none;
+    }
+
+    /* Screen 2 form */
+    .form{
+      text-align:left; margin-top:14px;
+      background:#fff6f9; border-radius:14px; padding:14px;
+      border: 1px solid rgba(255,77,125,.25);
+    }
+    .row{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px 6px; border-radius:12px;
+    }
+    .row:active{ background: rgba(255,77,125,.07); }
+    label{ font-weight:700; }
+    .note{ font-size:12px; opacity:.7; margin-top:8px; }
+    #submit2{
+      width:100%; margin-top:12px;
+      background:var(--pink); color:#fff;
+    }
+    #submit2:disabled{ opacity:.5; cursor:not-allowed; }
+
+    /* Confetti */
+    .confetti { position: fixed; inset:0; pointer-events:none; overflow:hidden; display:none; }
+    .piece{
+      position:absolute; top:-12px; width:10px; height:14px; opacity:.95; border-radius:3px;
+      animation: fall 1.7s linear forwards;
+    }
+    @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+    /* Simple page switching */
+    .screen{ display:none; }
+    .screen.active{ display:block; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <!-- SCREEN 1 -->
+    <section class="screen active" id="screen1">
+      <div class="chip">Official Fiancée Invitation Portal 💍</div>
+      <h1>Daphne, will you be my Valentine?</h1>
+      <p>Tap “YES” to proceed. Tap “NO” to… attempt. 😌</p>
+
+      <div class="btns" id="arena">
+        <button id="yes1">YES 💘</button>
+        <button id="no1">NO 😤</button>
+      </div>
+
+      <p class="tiny">Made with love + a little bit of cheating.</p>
+    </section>
+
+    <!-- SCREEN 2 -->
+    <section class="screen" id="screen2">
+      <div class="chip">Fiancée Reconfirmation Form ✅</div>
+      <h1>One last step, please.</h1>
+      <p>By ticking the boxes below, you officially accept this Valentine invitation.</p>
+
+      <div class="form">
+        <div class="row">
+          <input type="checkbox" id="hug" />
+          <div>
+            <label for="hug">I accept unlimited hugs (required)</label>
+            <div class="note">Includes surprise hugs, emergency hugs, and “just because” hugs.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <input type="checkbox" id="love" />
+          <div>
+            <label for="love">I love my fiancé a lot a lot (required)</label>
+            <div class="note">This statement is legally binding. (Trust me bro.)</div>
+          </div>
+        </div>
+
+        <button id="submit2" disabled>SUBMIT 💍</button>
+        <div class="note" id="warn" style="display:none;">Please tick both required boxes 😌</div>
+      </div>
+
+      <p class="tiny">Once submitted, you cannot un-love. Terms apply.</p>
+    </section>
+
+    <!-- SCREEN 3 -->
+    <section class="screen" id="screen3">
+      <div class="chip">Approved 🎉</div>
+      <h1>YAYYYYY!!! 💖</h1>
+      <p>You have successfully reconfirmed your fiancée status and accepted unlimited hugs.</p>
+      <p class="tiny">Screenshot this and send to Mr. Dion as proof 😌</p>
+    </section>
+  </div>
+
+  <div class="confetti" id="confetti"></div>
+
+  <script>
+    const screen1 = document.getElementById('screen1');
+    const screen2 = document.getElementById('screen2');
+    const screen3 = document.getElementById('screen3');
+
+    function show(screen){
+      [screen1, screen2, screen3].forEach(s => s.classList.remove('active'));
+      screen.classList.add('active');
+      window.scrollTo(0,0);
+    }
+
+    // --- Screen 1: dodging NO ---
+    const noBtn = document.getElementById('no1');
+    const yesBtn = document.getElementById('yes1');
+    const arena = document.getElementById('arena');
+    let dodges = 0;
+
+    function moveNoButton(){
+      dodges++;
+      const rect = arena.getBoundingClientRect();
+      const btnRect = noBtn.getBoundingClientRect();
+
+      const maxX = rect.width - btnRect.width;
+      const maxY = rect.height - btnRect.height;
+
+      const x = Math.max(0, Math.floor(Math.random() * maxX));
+      const y = Math.max(0, Math.floor(Math.random() * maxY));
+
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
+      noBtn.style.right = "auto";
+
+      if (dodges >= 6) noBtn.textContent = "NO 😭";
+      else if (dodges >= 3) noBtn.textContent = "NO 😵";
+      else noBtn.textContent = "NO 😤";
+    }
+
+    // mobile-friendly triggers
+    noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveNoButton(); }, {passive:false});
+    noBtn.addEventListener('mouseover', moveNoButton);
+    noBtn.addEventListener('click', moveNoButton);
+
+    yesBtn.addEventListener('click', () => show(screen2));
+
+    // --- Screen 2: form validation ---
+    const hug = document.getElementById('hug');
+    const love = document.getElementById('love');
+    const submit2 = document.getElementById('submit2');
+    const warn = document.getElementById('warn');
+
+    function updateSubmit(){
+      const ok = hug.checked && love.checked;
+      submit2.disabled = !ok;
+      warn.style.display = ok ? "none" : "block";
+    }
+    hug.addEventListener('change', updateSubmit);
+    love.addEventListener('change', updateSubmit);
+
+    // --- Confetti ---
+    const confetti = document.getElementById('confetti');
+    function fireConfetti(n){
+      confetti.innerHTML = "";
+      confetti.style.display = "block";
+      const colors = ["#ff4d7d","#ffd166","#06d6a0","#118ab2","#8338ec"];
+      for (let i=0;i<n;i++){
+        const d = document.createElement("div");
+        d.className = "piece";
+        d.style.left = (Math.random()*100) + "vw";
+        d.style.background = colors[Math.floor(Math.random()*colors.length)];
+        d.style.animationDuration = (1.1 + Math.random()*1.4) + "s";
+        d.style.transform = `translateY(0) rotate(${Math.random()*360}deg)`;
+        confetti.appendChild(d);
+      }
+      setTimeout(()=> confetti.style.display="none", 2300);
+    }
+
+    submit2.addEventListener('click', () => {
+      fireConfetti(90);
+      show(screen3);
+    });
+
+    // initialize warning state
+    updateSubmit();
+  </script>
+</body>
+</html>
